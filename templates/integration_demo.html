@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waste Classification Widget Integration Demo</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        header {
+            margin-bottom: 30px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 20px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 18px;
+        }
+        
+        .demo-section {
+            margin-bottom: 40px;
+        }
+        
+        h2 {
+            color: #3498db;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .code-block {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+            overflow-x: auto;
+            font-family: monospace;
+            white-space: pre;
+        }
+        
+        .widget-container {
+            margin: 30px 0;
+            min-height: 600px;
+        }
+        
+        .options-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .option-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        select, input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        .result-display {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            min-height: 100px;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Waste Classification Widget Integration Demo</h1>
+            <p class="subtitle">Learn how to integrate the Smart Waste Classification System into your website</p>
+        </header>
+        
+        <div class="demo-section">
+            <h2>Live Demo</h2>
+            <p>This is a live demonstration of the waste classification widget integrated into a webpage.</p>
+            
+            <div class="options-container">
+                <div class="option-group">
+                    <label for="theme-select">Theme:</label>
+                    <select id="theme-select">
+                        <option value="dark">Dark</option>
+                        <option value="light">Light</option>
+                    </select>
+                </div>
+                
+                <div class="option-group">
+                    <label for="width-input">Width:</label>
+                    <input type="text" id="width-input" value="100%">
+                </div>
+                
+                <div class="option-group">
+                    <label for="height-input">Height:</label>
+                    <input type="text" id="height-input" value="600px">
+                </div>
+                
+                <div class="option-group">
+                    <label>Features:</label>
+                    <div>
+                        <input type="checkbox" id="show-webcam" checked>
+                        <label for="show-webcam">Show Webcam</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="show-upload" checked>
+                        <label for="show-upload">Show Upload</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="auto-start">
+                        <label for="auto-start">Auto Start Camera</label>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="apply-settings">Apply Settings</button>
+            
+            <div id="my-waste-classifier" class="widget-container"></div>
+            
+            <div class="result-display">
+                <h3>Classification Results:</h3>
+                <pre id="result-output">No classification performed yet.</pre>
+            </div>
+        </div>
+        
+        <div class="demo-section">
+            <h2>Integration Code</h2>
+            <p>Copy and paste this code into your website to integrate the waste classification widget:</p>
+            
+            <div class="code-block" id="integration-code">
+&lt;!-- 1. Add the container where you want the widget to appear --&gt;
+&lt;div id="my-waste-classifier"&gt;&lt;/div&gt;
+
+&lt;!-- 2. Include the widget script --&gt;
+&lt;script src="https://your-domain.com/static/js/widget.js"&gt;&lt;/script&gt;
+
+&lt;!-- 3. Initialize the widget with your desired options --&gt;
+&lt;script&gt;
+    const classifier = new WasteClassifierWidget({
+        containerId: 'my-waste-classifier',
+        width: '100%',
+        height: '600px',
+        theme: 'dark',
+        showUpload: true,
+        showWebcam: true,
+        autoStart: false,
+        onResult: function(result) {
+            console.log('Classification result:', result);
+            // Do something with the result
+        }
+    });
+&lt;/script&gt;</div>
+        </div>
+        
+        <div class="demo-section">
+            <h2>API Reference</h2>
+            <p>The widget provides the following methods for programmatic control:</p>
+            
+            <div class="code-block">
+// Start the camera
+classifier.startCamera();
+
+// Stop the camera
+classifier.stopCamera();
+
+// Capture an image and classify it
+classifier.captureImage();</div>
+        </div>
+        
+        <footer>
+            <p>© 2023 BOLT INNOVATORS - Smart Waste Classification System</p>
+        </footer>
+    </div>
+    
+    <!-- Include the widget script -->
+    <script src="/static/js/widget.js"></script>
+    
+    <!-- Demo page script -->
+    <script>
+        let classifier;
+        
+        function initializeWidget() {
+            // Get current settings from form
+            const theme = document.getElementById('theme-select').value;
+            const width = document.getElementById('width-input').value;
+            const height = document.getElementById('height-input').value;
+            const showWebcam = document.getElementById('show-webcam').checked;
+            const showUpload = document.getElementById('show-upload').checked;
+            const autoStart = document.getElementById('auto-start').checked;
+            
+            // Clear previous widget if exists
+            const container = document.getElementById('my-waste-classifier');
+            container.innerHTML = '';
+            
+            // Initialize new widget with current settings
+            classifier = new WasteClassifierWidget({
+                containerId: 'my-waste-classifier',
+                width: width,
+                height: height,
+                theme: theme,
+                showUpload: showUpload,
+                showWebcam: showWebcam,
+                autoStart: autoStart,
+                onResult: function(result) {
+                    // Display the result
+                    document.getElementById('result-output').textContent = 
+                        JSON.stringify(result, null, 2);
+                }
+            });
+            
+            // Update the code example
+            updateCodeExample({
+                theme, width, height, showWebcam, showUpload, autoStart
+            });
+        }
+        
+        function updateCodeExample(settings) {
+            const codeExample = `&lt;!-- 1. Add the container where you want the widget to appear --&gt;
+&lt;div id="my-waste-classifier"&gt;&lt;/div&gt;
+
+&lt;!-- 2. Include the widget script --&gt;
+&lt;script src="https://your-domain.com/static/js/widget.js"&gt;&lt;/script&gt;
+
+&lt;!-- 3. Initialize the widget with your desired options --&gt;
+&lt;script&gt;
+    const classifier = new WasteClassifierWidget({
+        containerId: 'my-waste-classifier',
+        width: '${settings.width}',
+        height: '${settings.height}',
+        theme: '${settings.theme}',
+        showUpload: ${settings.showUpload},
+        showWebcam: ${settings.showWebcam},
+        autoStart: ${settings.autoStart},
+        onResult: function(result) {
+            console.log('Classification result:', result);
+            // Do something with the result
+        }
+    });
+&lt;/script&gt;`;
+            
+            document.getElementById('integration-code').textContent = codeExample;
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Apply settings button
+            document.getElementById('apply-settings').addEventListener('click', initializeWidget);
+            
+            // Initialize widget with default settings
+            initializeWidget();
+        });
+    </script>
+</body>
+</html>

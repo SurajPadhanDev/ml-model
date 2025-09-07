@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOLT INNOVATORS - Smart Waste Classifier</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>BOLT INNOVATORS</h1>
+        <p>Smart Waste Segregation and Recycling System</p>
+    </header>
+    <main class="container">
+        <div class="panel">
+            <h2>Upload an Image</h2>
+            <input type="file" id="imageUpload" accept="image/*" hidden>
+            <label for="imageUpload" class="upload-btn">Choose File</label>
+            <div class="image-preview-container">
+                <img id="imagePreview" src="" alt="Image Preview">
+            </div>
+            <div id="uploadResultCard" class="result-card">
+                <div class="card-inner">
+                    <div class="card-front">
+                        <p>Awaiting Image...</p>
+                    </div>
+                    <div class="card-back">
+                        <h3 id="uploadPrediction"></h3>
+                        <p id="uploadConfidence"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>Live Camera Feed</h2>
+            <button id="startCameraBtn">Start Camera</button>
+            <div class="video-container">
+                <video id="videoFeed" autoplay playsinline muted hidden></video>
+                <canvas id="canvasOverlay"></canvas>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

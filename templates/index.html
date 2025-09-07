@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOLT INNOVATORS - Smart Waste Classification</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    {% if is_widget %}
+    <style>
+        /* Widget-specific styles */
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        .container {
+            padding: 10px;
+            max-width: 100%;
+        }
+        header {
+            margin-bottom: 10px;
+        }
+        .logo-container {
+            padding: 5px 0;
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.8rem;
+        }
+        .logo-text h1 {
+            font-size: 20px;
+        }
+        .subtitle, .tagline {
+            font-size: 12px;
+        }
+        footer {
+            padding: 5px 0;
+            font-size: 12px;
+        }
+        /* Light theme */
+        {% if theme == 'light' %}
+        :root {
+            --primary-color: #2ecc71;
+            --secondary-color: #3498db;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --dark-bg: #f5f5f5;
+            --darker-bg: #e0e0e0;
+            --light-text: #333333;
+            --medium-text: #2c3e50;
+        }
+        {% endif %}
+    </style>
+    {% endif %}
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-container">
+                <div class="logo-icon">
+                    <i class="fas fa-recycle"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>BOLT INNOVATORS</h1>
+                    <p class="subtitle">Smart Waste Classification System</p>
+                    <p class="tagline">AI-Powered • Real-time • Eco-friendly</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="status-bar">
+            <div class="status-item" id="camera-status">
+                <i class="fas fa-video"></i> Camera: <span>Waiting</span>
+            </div>
+            <div class="status-item" id="instructions">
+                <i class="fas fa-info-circle"></i> Place objects in front of camera for classification
+            </div>
+        </div>
+
+        <main>
+            <div class="content-area">
+                <div class="video-container">
+                    <video id="webcam" autoplay playsinline></video>
+                    <canvas id="canvas" style="display: none;"></canvas>
+                    <div class="overlay" id="prediction-overlay"></div>
+                    <div class="controls">
+                        <button id="start-camera" class="btn primary">
+                            <i class="fas fa-play"></i> Start Camera
+                        </button>
+                        <button id="capture-image" class="btn secondary" disabled>
+                            <i class="fas fa-camera"></i> Capture
+                        </button>
+                        <button id="stop-camera" class="btn danger" disabled>
+                            <i class="fas fa-stop"></i> Stop
+                        </button>
+                    </div>
+                </div>
+
+                <div class="result-container">
+                    <h2>Classification Result</h2>
+                    <div id="prediction-result">Waiting for image...</div>
+                    <div id="confidence-meter">
+                        <div class="confidence-label">Confidence: <span id="confidence-value">0%</span></div>
+                        <div class="meter">
+                            <div class="meter-bar" id="confidence-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="upload-container">
+                <h3>Upload or Capture an Image</h3>
+                <p class="upload-instructions">Choose one of the methods below to analyze waste items:</p>
+                <div class="upload-options">
+                    <div class="option-tabs">
+                        <button id="upload-tab" class="tab-btn active"><i class="fas fa-upload"></i> Upload File</button>
+                        <button id="capture-tab" class="tab-btn"><i class="fas fa-camera"></i> Use Camera</button>
+                    </div>
+                    
+                    <div id="upload-option" class="option-content">
+                        <p class="method-instructions">Select an image file from your device:</p>
+                        <form id="upload-form">
+                            <div class="file-input-container">
+                                <input type="file" id="file-input" accept="image/*" class="file-input" capture>
+                                <label for="file-input" class="file-label">
+                                    <i class="fas fa-upload"></i> Choose File
+                                </label>
+                                <span id="file-name">No file chosen</span>
+                            </div>
+                            <button type="submit" class="btn primary">
+                                <i class="fas fa-check"></i> Classify Image
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div id="capture-option" class="option-content" style="display: none;">
+                        <p class="method-instructions">Position the item in the center of the frame and tap the capture button:</p>
+                        <div class="mobile-camera-container">
+                            <video id="mobile-camera" autoplay playsinline></video>
+                            <button id="mobile-capture-btn" class="btn primary capture-btn">
+                                <i class="fas fa-camera"></i>
+                            </button>
+                            <div class="camera-instructions">
+                                <p>Center the waste item in frame for best results</p>
+                            </div>
+                        </div>
+                        <div class="camera-controls">
+                            <button id="switch-camera" class="btn secondary">
+                                <i class="fas fa-sync"></i> Switch Camera
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="preview-container" style="display: none;">
+                    <h4>Preview</h4>
+                    <img id="image-preview" src="" alt="Preview">
+                    <div class="preview-actions">
+                        <button id="retake-photo" class="btn secondary">
+                            <i class="fas fa-redo"></i> Retake
+                        </button>
+                        <button id="classify-captured" class="btn primary">
+                            <i class="fas fa-search"></i> Analyze Image
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div class="waste-types-info">
+            <h3>Waste Classification Types</h3>
+            <div class="waste-types-grid">
+                <div class="waste-type organic">
+                    <i class="fas fa-apple-alt"></i>
+                    <h4>Organic</h4>
+                    <p>Food waste, garden waste, and other biodegradable materials</p>
+                </div>
+                <div class="waste-type recyclable">
+                    <i class="fas fa-recycle"></i>
+                    <h4>Recyclable</h4>
+                    <p>Paper, cardboard, glass, metal, and certain plastics</p>
+                </div>
+                <div class="waste-type hazardous">
+                    <i class="fas fa-skull-crossbones"></i>
+                    <h4>Hazardous</h4>
+                    <p>Batteries, chemicals, electronic waste, and medical waste</p>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>© 2023 BOLT INNOVATORS - Smart Waste Classification System</p>
+            {% if not is_widget %}
+            <p class="integration-note">Easily integrate this component into your existing website. <a href="/integration-demo">View Integration Demo</a></p>
+            {% endif %}
+        </footer>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+    
+    {% if is_widget %}
+    <script>
+        // Additional script for widget mode
+        document.addEventListener('DOMContentLoaded', function() {
+            // Notify parent that widget is loaded
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'widget-loaded',
+                    status: 'ready'
+                }, '*');
+            }
+        });
+    </script>
+    {% endif %}
+</body>
+</html>
