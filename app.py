@@ -198,6 +198,10 @@ def integration_demo():
 def send_static(path):
     return send_from_directory('static', path)
 
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory('static', 'favicon.ico', mimetype='image/x-icon')
+
 @app.route('/api/predict', methods=['POST'])
 def predict():
     if 'image' not in request.files and 'image_data' not in request.json and 'file' not in request.files and 'file' not in request.form:
