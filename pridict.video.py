@@ -165,20 +165,20 @@ def predict_frame(frame, return_confidence=False):
         try:
             from ai_integration import classify_waste
             
-            # Try to get prediction from external AI
-            external_prediction = classify_waste(frame)
+            # Try to get prediction from external AI with ensemble method
+            external_prediction = classify_waste(frame, use_ensemble=True, confidence_threshold=0.65)
             
             if external_prediction:
                 # If we got a valid prediction from external AI, return it
-                result = f"🌐 {external_prediction} (Gemini AI)"
+                result = f"🌐 {external_prediction} (AI Ensemble)"
                 return (result, 95.0) if return_confidence else result
         except Exception as api_error:
             print(f"External AI error: {api_error}")
             # Continue with local model if external AI fails
             pass
             
-        # Ensure frame is valid and has correct format
-        if frame.size == 0 or len(frame.shape) < 2:
+        # Enhanced validation for frame format
+        if frame is None or not isinstance(frame, np.ndarray) or frame.size == 0 or len(frame.shape) < 2:
             return ("❌ Invalid frame format", 0.0) if return_confidence else "❌ Invalid frame format"
             
         # Convert to RGB if frame is BGR
@@ -187,29 +187,92 @@ def predict_frame(frame, return_confidence=False):
         else:
             img_rgb = frame
             
-        # Resize with padding to maintain aspect ratio
+        # Enhanced image preprocessing pipeline
+        # 1. Resize with padding to maintain aspect ratio
         img_resized = resize_with_padding(img_rgb)
         
-        # Preprocess for MobileNetV2
-        img_array = np.expand_dims(img_resized.astype(np.float32), axis=0)
+        # 2. Apply lighting normalization for better accuracy in different lighting conditions
+        try:
+            # Convert to LAB color space
+            lab = cv2.cvtColor(img_resized, cv2.COLOR_RGB2LAB)
+            
+            # Split channels
+            l, a, b = cv2.split(lab)
+            
+            # Apply CLAHE (Contrast Limited Adaptive Histogram Equalization) to L channel
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+            cl = clahe.apply(l)
+            
+            # Merge channels back
+            limg = cv2.merge((cl, a, b))
+            
+            # Convert back to RGB color space
+            img_normalized = cv2.cvtColor(limg, cv2.COLOR_LAB2RGB)
+        except Exception as preprocess_error:
+            print(f"Preprocessing error: {preprocess_error}")
+            # Fallback to original resized image if preprocessing fails
+            img_normalized = img_resized
+        
+        # 3. Preprocess for MobileNetV2
+        img_array = np.expand_dims(img_normalized.astype(np.float32), axis=0)
         img_array = preprocess_input(img_array)
 
-        # Make prediction with error handling
+        # Make prediction with enhanced error handling
         try:
-            predictions = model.predict(img_array, verbose=0)[0]
-            pred_buffer.append(predictions)
-            avg_pred = np.mean(pred_buffer, axis=0)
-
-            predicted_idx = np.argmax(avg_pred)
-            predicted_class = CLASSES[predicted_idx]
-            confidence = float(avg_pred[predicted_idx])
-
-            if confidence < CONFIDENCE_THRESHOLD:
-                result = f"❓ Uncertain ({confidence*100:.1f}%)"
-            else:
-                result = f"{CLASS_NAMES[predicted_class]} ({confidence*100:.1f}%)"
+            # Use a timeout to prevent hanging on model prediction
+            import threading
+            import queue
+            
+            def predict_with_timeout(image_array, result_queue):
+                try:
+                    predictions = model.predict(image_array, verbose=0)[0]
+                    result_queue.put(predictions)
+                except Exception as e:
+                    result_queue.put(e)
+            
+            # Create a queue for the result
+            result_queue = queue.Queue()
+            
+            # Start prediction in a separate thread
+            prediction_thread = threading.Thread(target=predict_with_timeout, args=(img_array, result_queue))
+            prediction_thread.daemon = True
+            prediction_thread.start()
+            
+            # Wait for the prediction with timeout
+            try:
+                predictions = result_queue.get(timeout=2.0)  # 2 second timeout
                 
-            return (result, confidence*100) if return_confidence else result
+                # Check if the result is an exception
+                if isinstance(predictions, Exception):
+                    raise predictions
+                    
+                # Apply temporal smoothing with prediction buffer
+                pred_buffer.append(predictions)
+                
+                # Use weighted average for temporal smoothing (recent predictions have more weight)
+                weights = np.linspace(0.5, 1.0, len(pred_buffer))
+                weights = weights / np.sum(weights)  # Normalize weights
+                avg_pred = np.average(pred_buffer, axis=0, weights=weights)
+
+                predicted_idx = np.argmax(avg_pred)
+                predicted_class = CLASSES[predicted_idx]
+                confidence = float(avg_pred[predicted_idx])
+                
+                # Dynamic confidence threshold based on prediction stability
+                stability = np.std([p[predicted_idx] for p in pred_buffer])
+                adjusted_threshold = CONFIDENCE_THRESHOLD * (1.0 + stability * 2)  # Increase threshold for unstable predictions
+
+                if confidence < adjusted_threshold:
+                    result = f"❓ Uncertain ({confidence*100:.1f}%)"
+                else:
+                    result = f"{CLASS_NAMES[predicted_class]} ({confidence*100:.1f}%)"
+                    
+                return (result, confidence*100) if return_confidence else result
+                
+            except queue.Empty:
+                print("Model prediction timed out")
+                return ("❌ Model timeout", 0.0) if return_confidence else "❌ Model timeout"
+                
         except Exception as model_error:
             print(f"Model prediction error: {model_error}")
             return ("❌ Model error", 0.0) if return_confidence else "❌ Model error"

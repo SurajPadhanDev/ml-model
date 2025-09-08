@@ -106,6 +106,106 @@ def predict_frame(frame):
     
     return label
 
+# -----------------------------
+# Optimized local model prediction for ensemble system
+# -----------------------------
+def predict_local_model(image):
+    """
+    Run prediction on an image using the local model and return standardized result.
+    
+    Args:
+        image: The image to analyze (PIL Image, numpy array, or file path)
+        
+    Returns:
+        Dictionary with standardized prediction result
+    """
+    try:
+        # Convert to numpy array if needed
+        if isinstance(image, Image.Image):
+            # Convert PIL Image to numpy array
+            img_np = np.array(image.convert('RGB'))
+        elif isinstance(image, str) and os.path.exists(image):
+            # Load image from file
+            img_np = cv2.imread(image)
+            img_np = cv2.cvtColor(img_np, cv2.COLOR_BGR2RGB)
+        else:
+            # Assume it's already a numpy array
+            img_np = image
+            
+        # Validate image
+        if img_np is None or img_np.size == 0 or len(img_np.shape) < 2:
+            return None
+            
+        # Apply enhanced preprocessing
+        # 1. Resize with padding to maintain aspect ratio
+        img_resized = resize_with_padding(img_np)
+        
+        # 2. Apply additional preprocessing techniques
+        # - Normalize lighting conditions
+        img_normalized = normalize_lighting(img_resized)
+        
+        # - Convert to model input format
+        img_array = np.expand_dims(img_normalized.astype(np.float32), axis=0)
+        img_array = preprocess_input(img_array)
+
+        # Make prediction with error handling
+        predictions = model.predict(img_array, verbose=0)[0]
+        
+        # Apply temporal smoothing with prediction buffer
+        pred_buffer.append(predictions)
+        avg_pred = np.mean(pred_buffer, axis=0)
+
+        # Get predicted class and confidence
+        predicted_idx = np.argmax(avg_pred)
+        predicted_class = classes[predicted_idx]
+        confidence = float(avg_pred[predicted_idx])
+        
+        # Return standardized result format for ensemble system
+        return {
+            "source": "local",
+            "class_name": class_names.get(predicted_class, "Unknown"),
+            "confidence": confidence,
+            "reasoning": f"Local model prediction with {confidence*100:.1f}% confidence"
+        }
+        
+    except Exception as e:
+        print(f"Error in local model prediction: {e}")
+        return {
+            "source": "local",
+            "error": str(e),
+            "class_name": "Error",
+            "confidence": 0
+        }
+
+# Helper function for enhanced image preprocessing
+def normalize_lighting(image):
+    """
+    Normalize lighting conditions in the image to improve prediction accuracy.
+    
+    Args:
+        image: Input image as numpy array
+        
+    Returns:
+        Normalized image
+    """
+    # Convert to LAB color space
+    lab = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
+    
+    # Split channels
+    l, a, b = cv2.split(lab)
+    
+    # Apply CLAHE (Contrast Limited Adaptive Histogram Equalization) to L channel
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    cl = clahe.apply(l)
+    
+    # Merge channels back
+    limg = cv2.merge((cl, a, b))
+    
+    # Convert back to RGB color space
+    normalized = cv2.cvtColor(limg, cv2.COLOR_LAB2RGB)
+    
+    return normalized
+
 # Function to connect to camera
 def connect_to_camera(camera_source):
     global cap

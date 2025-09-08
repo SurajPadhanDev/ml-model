@@ -280,3 +280,142 @@ def classify_with_openai(image, model_name="gpt-4-vision-preview"):
             "class_name": "Error",
             "confidence": 0
         }
+
+# Main classification function that integrates multiple prediction sources
+def classify_waste(image, use_ensemble=True, confidence_threshold=0.7):
+    """
+    Classify waste image using multiple methods and combine results for higher accuracy.
+    
+    Args:
+        image: The image to classify (PIL Image, numpy array, or file path)
+        use_ensemble: Whether to use ensemble method for combining predictions
+        confidence_threshold: Minimum confidence threshold for valid predictions
+        
+    Returns:
+        String with classification result or None if classification failed
+    """
+    # Convert numpy array to PIL Image if needed
+    if isinstance(image, np.ndarray):
+        image_pil = Image.fromarray(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    elif isinstance(image, str) and os.path.exists(image):
+        image_pil = Image.open(image)
+    else:
+        image_pil = image
+        
+    # Validate image
+    if image_pil is None or not isinstance(image_pil, Image.Image):
+        print("Invalid image format for classification")
+        return None
+        
+    # Track available prediction methods
+    results = []
+    apis_available = check_api_availability()
+    
+    # Try external AI APIs first (they're generally more accurate)
+    if apis_available["gemini"]:
+        try:
+            import asyncio
+            gemini_result = asyncio.run(classify_with_gemini(image_pil))
+            if "error" not in gemini_result and gemini_result["confidence"] >= confidence_threshold:
+                results.append(gemini_result)
+        except Exception as e:
+            print(f"Gemini API error: {e}")
+    
+    if apis_available["openai"]:
+        try:
+            openai_result = classify_with_openai(image_pil)
+            if "error" not in openai_result and openai_result["confidence"] >= confidence_threshold:
+                results.append(openai_result)
+        except Exception as e:
+            print(f"OpenAI API error: {e}")
+    
+    # If we have valid external results and don't need ensemble, return the highest confidence one
+    if results and not use_ensemble:
+        # Sort by confidence and return the highest
+        results.sort(key=lambda x: x["confidence"], reverse=True)
+        return results[0]["class_name"]
+    
+    # If we need more results or want to use ensemble, add local model prediction
+    try:
+        # Import local model prediction function
+        # This is a placeholder - you'll need to implement or import your local prediction function
+        from predicton2 import predict_local_model
+        
+        # Get local model prediction
+        local_result = predict_local_model(image)
+        if local_result and local_result["confidence"] >= confidence_threshold * 0.8:  # Lower threshold for local model
+            results.append(local_result)
+    except Exception as e:
+        print(f"Local model error: {e}")
+    
+    # If we have no valid results, return None
+    if not results:
+        return None
+    
+    # If we only have one result or don't want to use ensemble, return it
+    if len(results) == 1 or not use_ensemble:
+        return results[0]["class_name"]
+    
+    # Use ensemble method to combine results
+    return ensemble_predictions(results)["class_name"]
+
+# Helper function to combine predictions from multiple sources
+def ensemble_predictions(results):
+    """
+    Combine predictions from multiple sources using weighted voting.
+    
+    Args:
+        results: List of prediction results from different sources
+        
+    Returns:
+        Combined prediction result
+    """
+    if not results:
+        return {"class_name": "Unknown", "confidence": 0, "source": "ensemble"}
+    
+    # Define source weights (adjust these based on empirical performance)
+    source_weights = {
+        "gemini": 1.2,  # Gemini is generally more accurate for this task
+        "openai": 1.1,  # OpenAI is also very accurate
+        "local": 0.8    # Local model is less accurate but still useful
+    }
+    
+    # Count weighted votes for each class
+    class_votes = {}
+    class_confidence = {}
+    
+    for result in results:
+        class_name = result["class_name"]
+        confidence = result["confidence"]
+        source = result["source"]
+        
+        # Get weight for this source (default to 1.0 if not specified)
+        weight = source_weights.get(source, 1.0)
+        
+        # Apply weighted voting
+        weighted_vote = confidence * weight
+        
+        if class_name in class_votes:
+            class_votes[class_name] += weighted_vote
+            class_confidence[class_name].append(confidence)
+        else:
+            class_votes[class_name] = weighted_vote
+            class_confidence[class_name] = [confidence]
+    
+    # Find the class with the most weighted votes
+    max_votes = 0
+    selected_class = None
+    
+    for class_name, votes in class_votes.items():
+        if votes > max_votes:
+            max_votes = votes
+            selected_class = class_name
+    
+    # Calculate average confidence for the selected class
+    avg_confidence = sum(class_confidence[selected_class]) / len(class_confidence[selected_class])
+    
+    return {
+        "class_name": selected_class,
+        "confidence": avg_confidence,
+        "source": "ensemble"
+    }
